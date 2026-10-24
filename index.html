@@ -1,0 +1,386 @@
+<!doctype html>
+<html lang="es">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<!-- La CDN de AliExpress rechaza (403) imágenes pedidas con Referer 127.0.0.1 -->
+<meta name="referrer" content="no-referrer">
+<title>Bici — Precios</title>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.1/chart.umd.min.js"></script>
+<style>
+:root{
+  --bg:#f5f6f8; --card:#fff; --text:#1d2330; --muted:#6b7385; --line:#e3e6ec;
+  --accent:#d6261c; --accent-ink:#fff;
+  --super:#0f8a4a; --super-bg:#e3f6ec; --bien:#2563c9; --bien-bg:#e5eefc;
+  --alto:#c2410c; --alto-bg:#fdeee4; --pocos:#6b7385; --pocos-bg:#eef0f4;
+  --warn:#9a6b00; --warn-bg:#fff5d6; --bad:#b42318; --bad-bg:#fde8e7;
+}
+@media (prefers-color-scheme: dark){
+  :root{
+    --bg:#12151b; --card:#1b1f27; --text:#e7e9ee; --muted:#9aa2b2; --line:#2c323d;
+    --super:#4ade80; --super-bg:#123323; --bien:#7aa7ff; --bien-bg:#16243f;
+    --alto:#fb923c; --alto-bg:#3a2212; --pocos:#9aa2b2; --pocos-bg:#252a33;
+    --warn:#facc15; --warn-bg:#3a3110; --bad:#f87171; --bad-bg:#3b1716;
+  }
+}
+*{box-sizing:border-box}
+body{margin:0;background:var(--bg);color:var(--text);font:15px/1.45 system-ui,-apple-system,"Segoe UI",Roboto,sans-serif}
+header{position:sticky;top:0;z-index:5;background:var(--card);border-bottom:1px solid var(--line)}
+.wrap{max-width:1100px;margin:0 auto;padding:0 16px}
+.top{display:flex;gap:16px;align-items:center;flex-wrap:wrap;padding:14px 0}
+h1{font-size:19px;margin:0;flex:1;min-width:180px}
+.total{text-align:right}
+.total b{font-size:26px;display:block;line-height:1.1}
+.total small{color:var(--muted)}
+.bar{display:flex;gap:8px;flex-wrap:wrap;align-items:center;padding:0 0 12px}
+.bar .info{color:var(--muted);font-size:13px;flex:1;min-width:200px}
+button,.btn{font:inherit;font-size:14px;border:1px solid var(--line);background:var(--card);color:var(--text);
+  padding:7px 12px;border-radius:8px;cursor:pointer;text-decoration:none;display:inline-flex;gap:6px;align-items:center}
+button:hover,.btn:hover{border-color:var(--muted)}
+button.primary{background:var(--accent);color:var(--accent-ink);border-color:var(--accent)}
+button.small{padding:3px 8px;font-size:12.5px}
+button:disabled{opacity:.5;cursor:default}
+main{padding:16px 0 60px}
+.item{background:var(--card);border:1px solid var(--line);border-radius:12px;margin-bottom:12px;overflow:hidden}
+.item.comprado{opacity:.6}
+.row{display:grid;grid-template-columns:120px 1fr auto;gap:16px;padding:14px}
+.img{width:120px;height:120px;border-radius:8px;background:#fff;border:1px solid var(--line);object-fit:contain}
+.noimg{display:flex;align-items:center;justify-content:center;color:var(--muted);font-size:12px}
+.name{font-weight:600;font-size:16px;margin:0 0 2px}
+.cat{color:var(--muted);font-size:12.5px;text-transform:uppercase;letter-spacing:.04em}
+.var{font-size:13.5px;margin-top:6px}
+.specs{color:var(--muted);font-size:13px;margin-top:4px;white-space:pre-line;overflow:hidden;
+  display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical}
+.item.open .specs{display:block}
+a{color:var(--bien)}
+.notice{font-size:13px;margin-top:8px;padding:5px 8px;border-radius:6px;display:inline-block}
+.notice.warn{background:var(--warn-bg);color:var(--warn)}
+.notice.bad{background:var(--bad-bg);color:var(--bad)}
+.price{text-align:right;min-width:190px}
+.price .big{font-size:22px;font-weight:700}
+.price .det{color:var(--muted);font-size:12.5px}
+.badge{display:inline-block;font-size:12.5px;font-weight:600;padding:3px 9px;border-radius:999px;margin-top:6px}
+.b-super{background:var(--super-bg);color:var(--super)} .b-bien{background:var(--bien-bg);color:var(--bien)}
+.b-alto{background:var(--alto-bg);color:var(--alto)} .b-pocos,.b-sin_datos{background:var(--pocos-bg);color:var(--pocos)}
+.stats{font-size:12px;color:var(--muted);margin-top:6px}
+.actions{display:flex;gap:6px;justify-content:flex-end;flex-wrap:wrap;margin-top:10px}
+.detail{border-top:1px solid var(--line);padding:14px;display:none}
+.item.open .detail{display:block}
+.chart{height:240px;margin-bottom:14px}
+table{width:100%;border-collapse:collapse;font-size:13.5px}
+th,td{text-align:left;padding:7px 6px;border-bottom:1px solid var(--line);vertical-align:top}
+th{color:var(--muted);font-weight:500;font-size:12.5px}
+td.num{text-align:right;white-space:nowrap}
+tr.principal td{background:var(--super-bg)}
+.dot{display:inline-block;width:8px;height:8px;border-radius:50%;margin-right:6px}
+.ok{background:var(--super)} .ko{background:var(--bad)} .nd{background:var(--muted)}
+.err{color:var(--bad);font-size:12px}
+.empty{text-align:center;color:var(--muted);padding:60px 0}
+dialog{border:1px solid var(--line);border-radius:12px;background:var(--card);color:var(--text);width:min(560px,94vw);padding:18px}
+dialog::backdrop{background:rgba(0,0,0,.45)}
+dialog h2{margin:0 0 12px;font-size:17px}
+label{display:block;font-size:13px;color:var(--muted);margin:10px 0 4px}
+input,textarea,select{width:100%;font:inherit;font-size:14px;padding:7px 9px;border:1px solid var(--line);border-radius:8px;background:var(--bg);color:var(--text)}
+textarea{min-height:90px}
+.grid2{display:grid;grid-template-columns:1fr 1fr;gap:10px}
+.dlg-actions{display:flex;justify-content:flex-end;gap:8px;margin-top:16px}
+.optgroup{margin-top:8px}
+.log{font:12px/1.4 ui-monospace,Consolas,monospace;color:var(--muted);white-space:pre-wrap;max-height:120px;overflow:auto;padding:0 0 10px}
+/* Versión publicada (solo lectura): sin controles de edición */
+.static .bar button, .static .bar a.btn, .static td button, .static .detail .actions,
+.static button[onclick^="abrirItem"]{display:none !important}
+@media (max-width:720px){
+  .row{grid-template-columns:84px 1fr}
+  .img{width:84px;height:84px}
+  .price{grid-column:1 / -1;text-align:left;min-width:0}
+  .actions{justify-content:flex-start}
+  .total{text-align:left}
+  .hide-m{display:none}
+}
+</style>
+</head>
+<body>
+<header>
+  <div class="wrap">
+    <div class="top">
+      <h1>🚲 Bici de ruta — monitor de precios</h1>
+      <div class="total"><small>Total estimado de lo pendiente (precio + envío)</small><b id="total">—</b><small id="total-sub"></small></div>
+    </div>
+    <div class="bar">
+      <span class="info" id="info"></span>
+      <button class="primary" id="btn-revisar" onclick="revisar()">↻ Revisar precios ahora</button>
+      <button onclick="abrirItem()">＋ Agregar pieza</button>
+      <a class="btn" href="/api/exportar">⇩ Excel</a>
+    </div>
+    <div class="log" id="log"></div>
+  </div>
+</header>
+
+<main class="wrap" id="lista"></main>
+
+<dialog id="dlg-item">
+  <h2 id="dlg-item-t">Pieza</h2>
+  <form method="dialog" onsubmit="guardarItem(event)">
+    <input type="hidden" id="it-id">
+    <label>Nombre</label><input id="it-nombre" required>
+    <div class="grid2">
+      <div><label>Categoría</label><input id="it-categoria" placeholder="Cuadro, Ruedas, Grupo…"></div>
+      <div><label>Cantidad</label><input id="it-cantidad" type="number" min="1" value="1"></div>
+    </div>
+    <label>Precio objetivo total (US$, precio + envío) — opcional</label>
+    <input id="it-objetivo" type="number" step="0.01" placeholder="Si baja de esto = súper oferta">
+    <label>Especificaciones / notas</label><textarea id="it-specs"></textarea>
+    <div class="grid2">
+      <div><label><input type="checkbox" id="it-comprado" style="width:auto"> Ya lo compré</label></div>
+      <div><label>Precio pagado (US$)</label><input id="it-pagado" type="number" step="0.01"></div>
+    </div>
+    <div class="dlg-actions">
+      <button type="button" id="it-borrar" onclick="borrarItem()" style="margin-right:auto;color:var(--bad)">Eliminar</button>
+      <button type="button" onclick="this.closest('dialog').close()">Cancelar</button>
+      <button class="primary">Guardar</button>
+    </div>
+  </form>
+</dialog>
+
+<dialog id="dlg-link">
+  <h2 id="dlg-link-t">Link</h2>
+  <form method="dialog" onsubmit="guardarLink(event)">
+    <input type="hidden" id="ln-id"><input type="hidden" id="ln-item">
+    <label>URL de AliExpress</label>
+    <div style="display:flex;gap:6px"><input id="ln-url" required><button type="button" onclick="detectar()" id="btn-detectar">Detectar variantes</button></div>
+    <div id="ln-opciones"></div>
+    <label>Variante (opciones separadas por “|”, tal cual aparecen en la página)</label>
+    <input id="ln-variante" placeholder="BXT Pearl White-A | 54cm Gloss">
+    <label>Notas</label><input id="ln-notas">
+    <label><input type="checkbox" id="ln-activo" style="width:auto" checked> Activo (incluir en la revisión diaria)</label>
+    <div class="dlg-actions">
+      <button type="button" onclick="this.closest('dialog').close()">Cancelar</button>
+      <button class="primary">Guardar</button>
+    </div>
+  </form>
+</dialog>
+
+<script>
+let ESTADO = null, abiertos = new Set(), charts = {}, poll = null;
+const $ = id => document.getElementById(id);
+const esc = s => String(s ?? '').replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
+const usd = n => n == null ? '—' : 'US$' + Number(n).toLocaleString('en-US', {minimumFractionDigits:2, maximumFractionDigits:2});
+const fecha = s => s ? new Date(s).toLocaleString('es-PE', {dateStyle:'medium', timeStyle:'short'}) : 'nunca';
+// Fuera de la laptop (GitHub Pages) la página es de solo lectura y usa data.json exportado.
+const STATIC = !['127.0.0.1', 'localhost'].includes(location.hostname);
+if (STATIC) document.documentElement.classList.add('static');
+let DATA = null;
+async function api(url, method='GET', body){
+  if (STATIC){
+    if (!DATA) DATA = await (await fetch('data.json?t=' + Date.now())).json();
+    if (url === '/api/estado') return DATA.estado;
+    const m = url.match(/^\/api\/items\/(\d+)\/historial$/);
+    return m ? (DATA.historial[m[1]] || []) : {};
+  }
+  const r = await fetch(url, {method, headers:{'Content-Type':'application/json'}, body: body ? JSON.stringify(body) : undefined});
+  return r.json();
+}
+
+async function cargar(){
+  ESTADO = await api('/api/estado');
+  const e = ESTADO;
+  $('total').textContent = usd(e.total_pendiente);
+  $('total-sub').textContent = (e.sin_precio ? `${e.sin_precio} pieza(s) sin precio disponible · ` : '') +
+    (e.total_comprado ? `ya pagado: ${usd(e.total_comprado)}` : '');
+  const pend = e.items.filter(i => !i.comprado).length;
+  $('info').textContent = `${pend} pieza(s) pendientes · última revisión: ${fecha(e.ultimo_chequeo)}`;
+  $('btn-revisar').disabled = e.revision.activa;
+  $('btn-revisar').textContent = e.revision.activa ? '⏳ Revisando…' : '↻ Revisar precios ahora';
+  $('log').textContent = e.revision.log.slice(-6).join('\n');
+  if (e.revision.activa && !poll) poll = setInterval(cargar, 3000);
+  if (!e.revision.activa && poll){ clearInterval(poll); poll = null; }
+  render();
+}
+
+function render(){
+  const L = $('lista');
+  if (!ESTADO.items.length){
+    L.innerHTML = '<div class="empty">Aún no hay piezas. Usa “＋ Agregar pieza”.</div>'; return;
+  }
+  L.innerHTML = ESTADO.items.map(itemHTML).join('');
+  for (const id of abiertos) dibujarGrafico(id);
+}
+
+function itemHTML(it){
+  const p = it.links.find(l => l.id === it.principal_id);
+  const img = p && p.imagen ? `<img class="img" src="${esc(p.imagen)}" loading="lazy" alt="">` : '<div class="img noimg">sin imagen</div>';
+  let aviso = '';
+  if (!it.links.length) aviso = '<span class="notice warn">Agrega un link de compra</span>';
+  else if (!it.disponible && p && p.revisado) aviso = '<span class="notice bad">⚠ Ningún link disponible — agrega un reemplazo</span>';
+  else if (it.usando_reemplazo) aviso = `<span class="notice warn">↪ Usando reemplazo (prioridad ${p.prioridad}): el link principal no está disponible</span>`;
+  else if (p && !p.revisado) aviso = '<span class="notice warn">Aún no revisado — pulsa “Revisar precios ahora”</span>';
+  const u = p && p.ultimo;
+  const precio = it.comprado
+    ? `<div class="big">${usd(it.precio_pagado)}</div><div class="det">comprado</div>`
+    : `<div class="big">${usd(it.total)}</div>
+       <div class="det">${u ? `${usd(u.precio)}${it.cantidad > 1 ? ` × ${it.cantidad}` : ''} + envío ${usd(u.envio)}` : ''}</div>
+       ${p ? `<span class="badge b-${p.etiqueta}">${esc(p.etiqueta_texto)}</span>` : ''}
+       ${p && p.minimo != null ? `<div class="stats">mín ${usd(p.minimo)} · prom ${usd(p.promedio)} · máx ${usd(p.maximo)} · ${p.dias} día(s)</div>` : ''}
+       ${it.precio_objetivo ? `<div class="stats">objetivo: ${usd(it.precio_objetivo)}</div>` : ''}`;
+  return `<div class="item ${it.comprado ? 'comprado' : ''} ${abiertos.has(it.id) ? 'open' : ''}" id="item-${it.id}">
+    <div class="row">
+      ${img}
+      <div>
+        <div class="cat">${esc(it.categoria)}</div>
+        <p class="name">${esc(it.nombre)}</p>
+        ${p ? `<div class="var"><b>${esc(p.variante || 'Variante por defecto')}</b> ${u && u.tienda ? '· ' + esc(u.tienda) : ''}</div>` : ''}
+        ${it.especificaciones ? `<div class="specs">${esc(it.especificaciones)}</div>` : ''}
+        ${aviso}
+      </div>
+      <div class="price">
+        ${precio}
+        <div class="actions">
+          <button class="small" onclick="toggle(${it.id})">${abiertos.has(it.id) ? 'Ocultar' : 'Historial y links'} (${it.links.length})</button>
+          <button class="small" onclick="abrirItem(${it.id})">Editar</button>
+        </div>
+      </div>
+    </div>
+    <div class="detail">
+      <div class="chart"><canvas id="chart-${it.id}"></canvas></div>
+      <table>
+        <tr><th>Prio.</th><th>Variante</th><th class="hide-m">Estado</th><th class="num">Total hoy</th><th class="num hide-m">Mín</th><th></th></tr>
+        ${it.links.map((l, i) => linkHTML(it, l, i)).join('')}
+      </table>
+      <div class="actions" style="justify-content:flex-start">
+        <button class="small" onclick="abrirLink(null, ${it.id})">＋ Agregar link / reemplazo</button>
+        <button class="small" onclick="revisar(${JSON.stringify(it.links.filter(l => l.activo).map(l => l.id))})">↻ Revisar esta pieza</button>
+      </div>
+    </div>
+  </div>`;
+}
+
+function linkHTML(it, l, i){
+  const estado = !l.activo ? '<span class="dot nd"></span>inactivo'
+    : !l.revisado ? '<span class="dot nd"></span>sin revisar'
+    : l.disponible ? '<span class="dot ok"></span>disponible' : '<span class="dot ko"></span>no disponible';
+  const err = l.ultimo && l.ultimo.error ? `<div class="err">${esc(l.ultimo.error)}</div>` : '';
+  return `<tr class="${l.id === it.principal_id ? 'principal' : ''}">
+    <td>${l.prioridad}<br>
+      <button class="small" title="Subir prioridad" onclick="mover(${l.id},-1)" ${i === 0 ? 'disabled' : ''}>▲</button>
+      <button class="small" title="Bajar prioridad" onclick="mover(${l.id},1)" ${i === it.links.length - 1 ? 'disabled' : ''}>▼</button></td>
+    <td><a href="${esc(l.url)}" target="_blank" rel="noopener">${esc(l.variante || 'por defecto')}</a>
+      ${l.notas ? `<div class="stats">${esc(l.notas)}</div>` : ''}${err}</td>
+    <td class="hide-m">${estado}<div class="stats">${l.ultimo ? fecha(l.ultimo.fecha) : ''}</div></td>
+    <td class="num">${usd(l.actual)}<br>${l.revisado ? `<span class="badge b-${l.etiqueta}">${esc(l.etiqueta_texto)}</span>` : ''}</td>
+    <td class="num hide-m">${usd(l.minimo)}</td>
+    <td class="num"><button class="small" onclick="abrirLink(${l.id}, ${it.id})">Editar</button>
+      <button class="small" onclick="borrarLink(${l.id})" title="Eliminar link">✕</button></td>
+  </tr>`;
+}
+
+function toggle(id){
+  abiertos.has(id) ? abiertos.delete(id) : abiertos.add(id);
+  render();
+}
+
+const COLORES = ['#d6261c', '#2563c9', '#0f8a4a', '#c2410c', '#7c3aed', '#0891b2'];
+async function dibujarGrafico(id){
+  const data = await api(`/api/items/${id}/historial`);
+  const dias = [...new Set(data.flatMap(l => l.puntos.map(p => p.dia)))].sort();
+  const cv = $('chart-' + id);
+  if (!cv) return;
+  if (charts[id]) charts[id].destroy();
+  const it = ESTADO.items.find(x => x.id === id);
+  const sets = data.map((l, i) => {
+    const m = Object.fromEntries(l.puntos.map(p => [p.dia, p.disponible ? p.total : null]));
+    return {label: `#${l.prioridad} ${l.variante || 'por defecto'}`, data: dias.map(d => m[d] ?? null),
+            borderColor: COLORES[i % COLORES.length], backgroundColor: COLORES[i % COLORES.length],
+            spanGaps: true, tension: .2, pointRadius: 3};
+  });
+  if (it && it.precio_objetivo) sets.push({label: 'Objetivo', data: dias.map(() => it.precio_objetivo),
+    borderColor: '#0f8a4a', borderDash: [6, 4], pointRadius: 0});
+  const txt = getComputedStyle(document.body).color;
+  charts[id] = new Chart(cv, {type: 'line', data: {labels: dias, datasets: sets},
+    options: {maintainAspectRatio: false, interaction: {mode: 'index', intersect: false},
+      plugins: {legend: {labels: {color: txt}}, tooltip: {callbacks: {label: c => `${c.dataset.label}: ${usd(c.parsed.y)}`}}},
+      scales: {y: {ticks: {color: txt, callback: v => 'US$' + v}}, x: {ticks: {color: txt}}}}});
+}
+
+async function revisar(ids){
+  const r = await api('/api/revisar', 'POST', ids ? {link_ids: ids} : {});
+  if (!r.ok) alert(r.msg);
+  cargar();
+}
+
+async function mover(id, dir){ await api(`/api/links/${id}/mover`, 'POST', {dir}); cargar(); }
+async function borrarLink(id){ if (confirm('¿Eliminar este link y su historial?')){ await api(`/api/links/${id}`, 'DELETE'); cargar(); } }
+
+function abrirItem(id){
+  const it = id ? ESTADO.items.find(x => x.id === id) : {};
+  $('dlg-item-t').textContent = id ? 'Editar pieza' : 'Nueva pieza';
+  $('it-id').value = id || '';
+  $('it-nombre').value = it.nombre || '';
+  $('it-categoria').value = it.categoria || '';
+  $('it-cantidad').value = it.cantidad || 1;
+  $('it-objetivo').value = it.precio_objetivo ?? '';
+  $('it-specs').value = it.especificaciones || '';
+  $('it-comprado').checked = !!it.comprado;
+  $('it-pagado').value = it.precio_pagado ?? '';
+  $('it-borrar').style.display = id ? '' : 'none';
+  $('dlg-item').showModal();
+}
+async function guardarItem(ev){
+  ev.preventDefault();
+  const id = $('it-id').value;
+  const body = {nombre: $('it-nombre').value, categoria: $('it-categoria').value, cantidad: +$('it-cantidad').value || 1,
+    precio_objetivo: $('it-objetivo').value === '' ? '' : +$('it-objetivo').value, especificaciones: $('it-specs').value,
+    comprado: $('it-comprado').checked ? 1 : 0, precio_pagado: $('it-pagado').value === '' ? '' : +$('it-pagado').value};
+  if (id) await api(`/api/items/${id}`, 'PUT', body);
+  else { const r = await api('/api/items', 'POST', body); abiertos.add(r.id); }
+  $('dlg-item').close(); cargar();
+}
+async function borrarItem(){
+  if (!confirm('¿Eliminar esta pieza con todos sus links e historial?')) return;
+  await api(`/api/items/${$('it-id').value}`, 'DELETE'); $('dlg-item').close(); cargar();
+}
+
+function abrirLink(id, itemId){
+  const it = ESTADO.items.find(x => x.id === itemId);
+  const l = id ? it.links.find(x => x.id === id) : {};
+  $('dlg-link-t').textContent = (id ? 'Editar link — ' : 'Nuevo link — ') + it.nombre;
+  $('ln-id').value = id || ''; $('ln-item').value = itemId;
+  $('ln-url').value = l.url || ''; $('ln-variante').value = l.variante || '';
+  $('ln-notas').value = l.notas || ''; $('ln-activo').checked = id ? !!l.activo : true;
+  $('ln-opciones').innerHTML = '';
+  $('dlg-link').showModal();
+}
+async function guardarLink(ev){
+  ev.preventDefault();
+  const id = $('ln-id').value, item = $('ln-item').value;
+  const body = {url: $('ln-url').value, variante: $('ln-variante').value, notas: $('ln-notas').value, activo: $('ln-activo').checked ? 1 : 0};
+  let lid = id;
+  if (id) await api(`/api/links/${id}`, 'PUT', body);
+  else lid = (await api(`/api/items/${item}/links`, 'POST', body)).id;
+  $('dlg-link').close();
+  abiertos.add(+item);
+  await revisar([+lid]);
+}
+async function detectar(){
+  const url = $('ln-url').value.trim();
+  if (!url) return;
+  const b = $('btn-detectar'); b.disabled = true; b.textContent = 'Leyendo…';
+  try{
+    const r = await api('/api/opciones?url=' + encodeURIComponent(url));
+    if (r.error || !r.grupos.length){ $('ln-opciones').innerHTML = '<div class="err">No se pudieron leer variantes (puede que el producto no tenga).</div>'; return; }
+    const actuales = $('ln-variante').value.split('|').map(s => s.trim());
+    $('ln-opciones').innerHTML = `<div class="stats">${esc(r.titulo)}</div>` + r.grupos.map((g, gi) =>
+      `<div class="optgroup"><label>${esc(g.nombre)}</label><select data-g="${gi}" onchange="armarVariante()">
+        <option value="">— elegir —</option>
+        ${g.opciones.map(o => `<option ${actuales.includes(o.label) ? 'selected' : ''}>${esc(o.label)}${o.agotado ? ' (agotado)' : ''}</option>`).join('')}
+      </select></div>`).join('');
+  } finally { b.disabled = false; b.textContent = 'Detectar variantes'; }
+}
+function armarVariante(){
+  $('ln-variante').value = [...document.querySelectorAll('#ln-opciones select')]
+    .map(s => s.value.replace(/ \(agotado\)$/, '')).filter(Boolean).join(' | ');
+}
+
+cargar();
+</script>
+</body>
+</html>
